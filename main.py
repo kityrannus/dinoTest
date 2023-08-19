@@ -7,9 +7,16 @@ import pygame, os, time, random
 WIDTH = 1280
 HEIGHT= 720
 
-# player image
-DINO = pygame.image.load(os.path.join("assets", "Idle (1).png"))
+# frames for animation of dino
+# walking
+dinoWalkFrames = ["Walk (1).png", "Walk (2).png", "Walk (3).png", "Walk (4).png", "Walk (5).png"]
+# idle
+dinoFrames = ["Idle (1).png", "Idle (2).png", "Walk (1).png", "Walk (2).png"]
+currentFrame = 0
 
+# player image
+DINO = pygame.image.load(os.path.join("assets", dinoFrames[currentFrame]))
+print(DINO)
 # enemies
 PTERA = pygame.image.load(os.path.join("assets", "tera1.png"))
 
@@ -38,7 +45,33 @@ enemies = []
 waveLen = 5
 enemyVel = 2
 vel = 7
+mode = 0
+count = 0
 
+def updateFrame(mod, counter):
+    act = 0
+    if int(counter) >= 5:
+        counter = 0
+    if mod == 0:
+        if counter <1:
+            act = 0
+        elif counter >= 2:
+            act = 1
+    if mod == 1:
+        if counter <30.0:
+            act = 2
+        elif 30 <= counter < 60:
+            act = 3
+    if mod == 2:
+        if counter <30.0:
+            act = 4
+        elif 30 <= counter < 60:
+            act = 5
+    counter += 0.2
+    #print(act, counter)
+    return act, counter
+    
+    
 def collide(self, obj2):
         offset_x = obj2.x - self.x
         offset_y = obj2.y - self.y
@@ -82,10 +115,12 @@ class Sprite:
 class Player(Sprite):
     def __init__(self, x, y, health = 100):
         super().__init__(x, y, health)
-        self.spriteImage = DINO
+        self.allSprites = [pygame.image.load("Assets/Idle (1).png"), pygame.image.load("Assets/Idle (2).png"), pygame.image.load("Assets/Walk (1).png"), pygame.image.load("Assets/Walk (2).png")]
+        self.currentSprite = 2
+        self.spriteImage = self.allSprites[self.currentSprite]
         self.fire = CLAW
         self.attacks = []
-        for missile in range(2):
+        for missile in range(1):
             missile = Projectile(self.x, self.y, self.fire)
             self.attacks.append(missile)
         self.mask = pygame.mask.from_surface(self.spriteImage)
@@ -93,6 +128,17 @@ class Player(Sprite):
 
     def collision(self, obj):
         return collide(obj, self)
+    
+    def updateImage(self, frame):
+        self.spriteImage = self.allSprites[frame]
+        
+    def animate(self, mode):
+        counter = 0.0
+        if mode == 0 and int(counter) == 0:
+            self.updateImage(0)
+        if mode == 0 and int(counter) == 1:
+            self.updateImage(1)
+        counter += 0.1
 
     def shoot(self):
         missile = Projectile(self.x + 80, self.y + 75, self.fire)
@@ -116,10 +162,10 @@ class Enemy(Sprite):
         maxHealth = health
 
     def move(self, vel):
-        self.y += vel
+        self.x -= vel
     
-myDino = Player(50, 500)
-enemy1 = Enemy(1000, 50)
+myDino = Player(50, 565)
+enemy1 = Enemy(720, 50)
 
 while running:
     # poll for events
@@ -127,6 +173,8 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYUP:
+            mode = 0
 
 
     levelLabel = mainFont.render(f"Level: {level}", 1, (255, 0, 0))
@@ -137,14 +185,21 @@ while running:
     
     for enemy in enemies:
         enemy.draw(screen)
-
+    
+    #curentFrame, count = updateFrame(mode, count)
+    currentFrame += 0.1
+    if int(currentFrame) > 3:
+        currentFrame = 0
+    
+    #DINO = pygame.image.load(os.path.join("assets", dinoIdleFrames[currentFrame]))
+    myDino.updateImage(int(currentFrame))
     myDino.draw(screen)
-
+    
     if len(enemies) == 0:
         level += 1
         waveLen += 2
         for i in range(waveLen):
-            enemy = Enemy(random.randrange(50, WIDTH - 100),random.randrange(-500, -30))
+            enemy = Enemy(random.randrange(50, WIDTH + 100),random.randrange(-50, 200))
             enemies.append(enemy)
 
 
@@ -155,18 +210,22 @@ while running:
     if keys[pygame.K_s] and myDino.y + myDino.getHeight() < HEIGHT:
         myDino.y += 300 *dt
     if keys[pygame.K_a] and myDino.x - 50 > 0:
+        mode = 1 #left
         myDino.x -= 300 *dt
     if keys[pygame.K_d] and myDino.x + myDino.getWidth() < WIDTH:
+        mode = 2 # right
         myDino.x += 300 *dt
     if keys[pygame.K_SPACE]:
         myDino.shoot()
+    
+    
 
     myDino.moveAttack(enemies)
 
     for enemy in enemies:
         enemy.move(enemyVel)
 
-        if enemy.y > HEIGHT:
+        if enemy.x < 50:
             enemies.remove(enemy)
             
         if myDino.collision(enemy):
@@ -177,6 +236,7 @@ while running:
             if myDino.attacks[0].collision(enemy):
                 score += 1
                 enemies.remove(enemy)
+    
             
 
     
