@@ -135,9 +135,9 @@ class Player(Sprite):
     def animate(self, mode):
         counter = 0.0
         if mode == 0 and int(counter) == 0:
-            updateImage(0)
+            self.updateImage(0)
         if mode == 0 and int(counter) == 1:
-            updateImage(1)
+            self.updateImage(1)
         counter += 0.1
 
     def shoot(self):
